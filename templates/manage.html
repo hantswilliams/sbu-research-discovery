@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Manage{% endblock %}
+
+{% block content %}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+
+    <h1>Manage Saved Articles</h1>
+    <table id="manageTable" class="display">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Authors</th>
+                <th>Source</th>
+                <th>Publication Date</th>
+                <th>Abstract</th>
+                <th>Faculty Member</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for article in articles %}
+            <tr>
+                <td>{{ article.title }}</td>
+                <td>{{ article.authors }}</td>
+                <td>{{ article.source }}</td>
+                <td>{{ article.pub_date }}</td>
+                <td>{{ article.abstract }}</td>
+                <td>{{ article.faculty_member }}</td>
+                <td><button onclick="deleteArticle({{ article.id }})">Delete</button></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        $(document).ready(function() {
+            $('#manageTable').DataTable({
+                "pageLength": 100
+            });
+        });
+
+        function deleteArticle(articleId) {
+            if (confirm('Are you sure you want to delete this article?')) {
+                fetch('/delete/' + articleId, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error deleting article.');
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+    </script>
+
+{% endblock %}

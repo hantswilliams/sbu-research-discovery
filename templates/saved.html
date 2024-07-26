@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Saved Articles{% endblock %}
+
+{% block content %}
+
+    <h1>Manage Saved Articles</h1>
+    {% for article in articles %}
+        <div>
+            <!-- Camel Case Faculty Member -->
+            <p style="text-transform: capitalize;"> <strong> Faculty Member:</strong> {{ article.faculty_member }} <br>
+            <strong>Title:</strong> {{ article.title }}<br>
+            <strong>Authors:</strong> {{ article.authors }}<br>
+            <strong>Source:</strong> {{ article.source }}<br>
+            <strong>Publication Date:</strong> {{ article.pub_date }}<br>
+            <strong>Abstract:</strong> {{ article.abstract }}<br>
+        </div>
+        <hr>
+    {% endfor %}
+    <a href="{{ url_for('index') }}">Back to Search</a>
+
+{% endblock %}
