@@ -16,6 +16,8 @@
                 <th>Source</th>
                 <th>Publication Date</th>
                 <th>Abstract</th>
+                <th>PMID</th>
+                <th>PubMedLink</th>
                 <th>Faculty Member</th>
                 <th>Actions</th>
             </tr>
@@ -28,6 +30,8 @@
                 <td>{{ article.source }}</td>
                 <td>{{ article.pub_date }}</td>
                 <td>{{ article.abstract }}</td>
+                <td>{{ article.pmid }}</td>
+                <td><a href="{{ article.pubmed_link }}" target="_blank">Link</a></td>
                 <td>{{ article.faculty_member }}</td>
                 <td><button onclick="deleteArticle({{ article.id }})">Delete</button></td>
             </tr>

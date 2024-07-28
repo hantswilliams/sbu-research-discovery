@@ -2,44 +2,127 @@
 
 {% block title %}Faculty Publications{% endblock %}
 
-{% block content %}
+{% block head %}
+    <!-- DataTables CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.css">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery -->
     <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <!-- DataTables JS -->
     <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.js"></script>
+    <!-- Custom Tailwind Configuration for Stony Brook Colors -->
+    <style>
+        :root {
+            --stony-brook-red: #cc0033;
+            --stony-brook-gray: #4b4b4b;
+        }
 
-    <h1 class="text-2xl font-bold mb-4">SHP Faculty Publications</h1>
-    <table id="articlesTable" class="display">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Authors</th>
-                <th>Source</th>
-                <th>Publication Date</th>
-                <th>Abstract</th>
-                <th>Faculty Member</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for article in articles %}
-            <tr>
-                <td>{{ article.title }}</td>
-                <td>{{ article.authors }}</td>
-                <td>{{ article.source }}</td>
-                <td>{{ article.pub_date }}</td>
-                <td>{{ article.abstract }}</td>
-                <td>{{ article.faculty_member }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        .stony-brook-bg {
+            background-color: var(--stony-brook-red);
+        }
+
+        .stony-brook-text {
+            color: var(--stony-brook-red);
+        }
+
+        .stony-brook-gray-text {
+            color: var(--stony-brook-gray);
+        }
+
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 1rem; /* Add space below the search bar */
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            border: 1px solid var(--stony-brook-gray);
+            padding: 0.375rem;
+            border-radius: 0.375rem;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .dataTables_wrapper .dataTables_filter {
+                margin-bottom: 0.5rem;
+            }
+            .dataTables_wrapper .dataTables_filter input {
+                padding: 0.25rem;
+                font-size: 0.875rem;
+            }
+            #articlesTable th, #articlesTable td {
+                padding: 0.25rem; /* Reduced padding for mobile */
+                font-size: 0.75rem; /* Smaller font size for mobile */
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="flex justify-between items-center mb-4">
+        <img src="{{ url_for('static', filename='sbu_seawulf.png') }}"
+            alt="Stony Brook University"
+            class="h-32">
+        <h1 class="text-3xl font-bold stony-brook-text">PubMed Faculty Publications</h1>
+    </div>
+    <div class="mb-4">
+        <span id="articleCount" class="text-lg stony-brook-text"></span>
+    </div>
+    <div class="overflow-x-auto px-4">
+        <table id="articlesTable" class="min-w-full bg-white">
+            <thead>
+                <tr class="stony-brook-bg text-white">
+                    <th class="py-2">Title</th>
+                    <th class="py-2">Authors</th>
+                    <th class="py-2">Source</th>
+                    <th class="py-2">Publication Date</th>
+                    <th class="py-2">Abstract</th>
+                    <th class="py-2">Faculty Member</th>
+                    <th class="py-2">PMID</th>
+                    <th class="py-2">Link</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for article in articles %}
+                <tr class="border-b">
+                    <td class="py-2">{{ article.title }}</td>
+                    <td class="py-2">{{ article.authors }}</td>
+                    <td class="py-2">{{ article.source }}</td>
+                    <td class="py-2">{{ article.pub_date }}</td>
+                    <td class="py-2 abstract-cell" data-full-abstract="{{ article.abstract }}">
+                        {{ article.abstract[:250] }}{% if article.abstract|length > 250 %}...{% endif %}
+                    </td>
+                    <td class="py-2">{{ article.faculty_member }}</td>
+                    <td class="py-2">{{ article.pmid }}</td>
+                    <td class="py-2"><a href="{{ article.pubmed_link }}" target="_blank" class="text-blue-500">PubMed</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     <script>
         $(document).ready(function() {
-            $('#articlesTable').DataTable({
+            const table = $('#articlesTable').DataTable({
                 "pageLength": 100
             });
+
+            // Update the article count
+            $('#articleCount').text(`${table.data().length} PubMed Articles Found`);
+
+            function adjustAbstracts() {
+                const windowWidth = $(window).width();
+                $('.abstract-cell').each(function() {
+                    const fullAbstract = $(this).data('full-abstract');
+                    if (windowWidth <= 768) {
+                        $(this).text(fullAbstract.length > 250 ? fullAbstract.substring(0, 250) + '...' : fullAbstract);
+                    } else {
+                        $(this).text(fullAbstract);
+                    }
+                });
+            }
+
+            adjustAbstracts();
+            $(window).resize(adjustAbstracts);
         });
     </script>
-
 {% endblock %}
-

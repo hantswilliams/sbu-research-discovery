@@ -16,7 +16,17 @@ class Article(db.Model):
     source = db.Column(db.String(500), nullable=False)
     pub_date = db.Column(db.String(50), nullable=False)
     abstract = db.Column(db.Text, nullable=False)
-    faculty_member = db.Column(db.String(100), nullable=False)  # New field for faculty member
+    faculty_member = db.Column(db.String(100), nullable=False)
+    pmid = db.Column(db.String(50), nullable=False)  # New field for PubMed ID
+    pubmed_link = db.Column(db.String(500), nullable=False)  # New field for PubMed link
+
+class FacultyMember(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+
+class DeletedArticle(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    pmid = db.Column(db.String(50), nullable=False, unique=True)
 
 # Create the database
 with app.app_context():
@@ -65,12 +75,17 @@ def fetch_article_details(pmids):
                 else:
                     authors.append(author.get('CollectiveName', ''))
 
+            pmid = record['MedlineCitation']['PMID']
+            pubmed_link = f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
+
             article = {
                 'Title': record['MedlineCitation']['Article']['ArticleTitle'],
                 'Authors': authors,
                 'Source': record['MedlineCitation']['Article']['Journal']['Title'],
                 'PubDate': pub_date,
-                'Abstract': str(abstract)
+                'Abstract': str(abstract),
+                'PMID': str(pmid),
+                'PubMedLink': str(pubmed_link)
             }
             articles.append(article)
         return articles
@@ -113,7 +128,18 @@ def save():
     print('faculty_member:', faculty_member)  # Debug print
     print('selected_articles:', selected_articles)  # Debug print
 
+    # Ensure faculty member is saved
+    faculty = FacultyMember.query.filter_by(name=faculty_member).first()
+    if not faculty:
+        faculty = FacultyMember(name=faculty_member)
+        db.session.add(faculty)
+        db.session.commit()
+
     for article_data in selected_articles:
+        # Skip articles that are marked as deleted
+        if DeletedArticle.query.filter_by(pmid=article_data['pmid']).first():
+            continue
+
         try:
             new_article = Article(
                 title=article_data['title'],
@@ -121,7 +147,9 @@ def save():
                 source=article_data['source'],
                 pub_date=article_data['pub_date'],
                 abstract=article_data['abstract'],
-                faculty_member=faculty_member  # Save faculty member name
+                faculty_member=faculty_member,
+                pmid=article_data['pmid'],
+                pubmed_link=article_data['pubmed_link']
             )
             db.session.add(new_article)
         except Exception as e:
@@ -130,6 +158,8 @@ def save():
 
     db.session.commit()
     return jsonify(success=True)
+
+
 
 @app.route('/saved')
 @check_password
@@ -149,6 +179,10 @@ def delete(article_id):
     try:
         article = Article.query.get(article_id)
         if article:
+            # Add the PMIDs of deleted articles to the DeletedArticle table
+            deleted_article = DeletedArticle(pmid=article.pmid)
+            db.session.add(deleted_article)
+
             db.session.delete(article)
             db.session.commit()
             return jsonify(success=True)
@@ -157,6 +191,6 @@ def delete(article_id):
     except Exception as e:
         print(f"Error deleting article: {e}")
         return jsonify(success=False, error=str(e))
-
+    
 if __name__ == '__main__':
     app.run(debug=True)

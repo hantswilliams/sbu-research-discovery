@@ -1,37 +1,43 @@
-{% extends "base.html" %}
-
-{% block title %}Select PubMed Articles{% endblock %}
-
-{% block content %}
-    <h1 class="text-2xl font-bold mb-4">Select PubMed Articles for {{ author_name }}</h1>
-    <form id="articleForm" method="POST" action="{{ url_for('save') }}" class="mb-4">
+<!doctype html>
+<html>
+<head>
+    <title>Select PubMed Articles</title>
+</head>
+<body>
+    <h1>Select PubMed Articles for {{ author_name }}</h1>
+    <form id="articleForm" method="POST" action="{{ url_for('save') }}">
         <input type="hidden" name="faculty_member" value="{{ author_name }}">
         <div>
-            <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)" class="mr-2">
-            <label for="selectAll" class="text-lg">Select All</label>
+            <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)">
+            <label for="selectAll">Select All</label>
         </div>
         {% for article in articles %}
             {% set is_saved = (article['Title'], ", ".join(article['Authors']), article['PubDate']) in saved_articles_set %}
-            <div class="p-4 mb-4 border {% if is_saved %}bg-green-100{% endif %}">
-                <input type="checkbox" class="article-checkbox mr-2" name="selected_articles" value="{{ loop.index0 }}" {% if is_saved %}disabled{% endif %}>
+            <div style="background-color: {% if is_saved %}lightgreen{% endif %};">
+                <input type="checkbox" class="article-checkbox" name="selected_articles" value="{{ loop.index0 }}" {% if is_saved %}disabled{% endif %}>
                 <input type="hidden" name="title_{{ loop.index0 }}" value="{{ article['Title'] }}">
                 <input type="hidden" name="authors_{{ loop.index0 }}" value="{{ ", ".join(article['Authors']) }}">
                 <input type="hidden" name="source_{{ loop.index0 }}" value="{{ article['Source'] }}">
                 <input type="hidden" name="pub_date_{{ loop.index0 }}" value="{{ article['PubDate'] }}">
                 <input type="hidden" name="abstract_{{ loop.index0 }}" value="{{ article['Abstract'] }}">
+                <input type="hidden" name="pmid_{{ loop.index0 }}" value="{{ article['PMID'] }}">
+                <input type="hidden" name="pubmed_link_{{ loop.index0 }}" value="{{ article['PubMedLink'] }}">
                 <strong>Title:</strong> {{ article['Title'] }}<br>
                 <strong>Authors:</strong> {{ ", ".join(article['Authors']) }}<br>
                 <strong>Source:</strong> {{ article['Source'] }}<br>
                 <strong>Publication Date:</strong> {{ article['PubDate'] }}<br>
                 <strong>Abstract:</strong> {{ article['Abstract'] }}<br>
+                <strong>PMID:</strong> {{ article['PMID'] }}<br>
+                <strong>PubMed Link:</strong> <a href="{{ article['PubMedLink'] }}" target="_blank">Link</a><br>
                 {% if is_saved %}
                     <em>(Already saved)</em>
                 {% endif %}
             </div>
+            <hr>
         {% endfor %}
-        <button type="button" onclick="submitForm()" class="bg-blue-500 text-white py-2 px-4 rounded">Save Selected Articles</button>
+        <button type="button" onclick="submitForm()">Save Selected Articles</button>
     </form>
-    <a href="{{ url_for('index') }}" class="text-blue-500 underline">Back to Search</a>
+    <a href="{{ url_for('index') }}">Back to Search</a>
 
     <script>
         function toggleSelectAll(selectAllCheckbox) {
@@ -53,7 +59,9 @@
                     authors: formData.get(`authors_${index}`),
                     source: formData.get(`source_${index}`),
                     pub_date: formData.get(`pub_date_${index}`),
-                    abstract: formData.get(`abstract_${index}`)
+                    abstract: formData.get(`abstract_${index}`),
+                    pmid: formData.get(`pmid_${index}`),
+                    pubmed_link: formData.get(`pubmed_link_${index}`),
                 });
             });
 
@@ -75,4 +83,5 @@
             .catch(error => console.error('Error:', error));
         }
     </script>
-{% endblock %}
+</body>
+</html>

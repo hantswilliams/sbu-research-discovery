@@ -14,6 +14,8 @@
             <strong>Source:</strong> {{ article.source }}<br>
             <strong>Publication Date:</strong> {{ article.pub_date }}<br>
             <strong>Abstract:</strong> {{ article.abstract }}<br>
+            <strong>PMID:</strong> {{ article.pmid }}<br>
+            <strong>PubMed Link:</strong> <a href="{{ article.pubmed_link }}" target="_blank">Link</a><br>
         </div>
         <hr>
     {% endfor %}
