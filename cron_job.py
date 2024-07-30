@@ -10,7 +10,7 @@ load_dotenv()
 # Set the email for Entrez
 Entrez.email = "hants.williams@stonybrook.edu"
 
-def search_pubmed(author_name, retmax=200):
+def search_pubmed(author_name, retmax=1000):
     search_term = f"{author_name}[Author]"
     try:
         handle = Entrez.esearch(db="pubmed", term=search_term, retmax=retmax)
