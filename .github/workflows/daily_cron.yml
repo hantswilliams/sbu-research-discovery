@@ -25,8 +25,14 @@ jobs:
 
     - name: Run update script
       env:
-        EMAIL: ${{ secrets.EMAIL }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+        ENTERZ_EMAIL: ${{ secrets.EMAIL }}
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASS: ${{ secrets.DB_PASS }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        DB_HOST: ${{ secrets.DB_HOST }}
+        MAILGUN_API_KEY: ${{ secrets.MAILGUN_API_KEY }}
+        MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+        MAILGUN_FROM_EMAIL: ${{ secrets.MAILGUN_FROM_EMAIL }}
       run: |
         . venv/bin/activate
-        python update_articles.py
+        python cron_job.py

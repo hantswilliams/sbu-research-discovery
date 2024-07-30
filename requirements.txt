@@ -2,3 +2,8 @@ flask
 sqlalchemy
 flask_sqlalchemy
 biopython
+pandas
+python-dotenv
+pymysql
+requests
+beautifulsoup4

@@ -85,12 +85,10 @@
                 {% for article in articles %}
                 <tr class="border-b">
                     <td class="py-2">{{ article.title }}</td>
-                    <td class="py-2">{{ article.authors }}</td>
-                    <td class="py-2">{{ article.source }}</td>
+                    <td class="py-2">{{ article.authors[:100] }}</td>
+                    <td class="py-2">{{ article.source[:100] }}</td>
                     <td class="py-2">{{ article.pub_date }}</td>
-                    <td class="py-2 abstract-cell" data-full-abstract="{{ article.abstract }}">
-                        {{ article.abstract[:250] }}{% if article.abstract|length > 250 %}...{% endif %}
-                    </td>
+                    <td class="py-2">{{ article.abstract[:200] }}</td>
                     <td class="py-2">{{ article.faculty_member }}</td>
                     <td class="py-2">{{ article.pmid }}</td>
                     <td class="py-2"><a href="{{ article.pubmed_link }}" target="_blank" class="text-blue-500">PubMed</a></td>
