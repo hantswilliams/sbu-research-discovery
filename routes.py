@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, Response
+from flask import render_template, request, jsonify, Response, redirect, url_for, session
 from functools import wraps
 from Bio import Entrez
 from database import db, Article, FacultyMember, DeletedArticle  # Importing the database and models
@@ -6,6 +6,17 @@ from database import db, Article, FacultyMember, DeletedArticle  # Importing the
 Entrez.email = "your.email@example.com"  # Replace with your email
 
 def register_routes(app):
+
+    app.secret_key = 'your_secret_key_here'  # Replace with your secret key
+
+    def login_required(func):
+        @wraps(func)
+        def decorated_function(*args, **kwargs):
+            if 'logged_in' not in session:
+                return redirect(url_for('login'))
+            return func(*args, **kwargs)
+        return decorated_function
+
     def check_password(func):
         @wraps(func)
         def decorated_function(*args, **kwargs):
@@ -70,10 +81,31 @@ def register_routes(app):
     @app.route('/')
     def view():
         articles = Article.query.all()
-        return render_template('view.html', articles=articles)
+        ## check if user is logged in
+        if 'logged_in' in session:
+            return render_template('view.html', articles=articles, logged_in=True)
+        else:
+            return render_template('view.html', articles=articles, logged_in=False)
+        
+    @app.route('/login', methods=['GET', 'POST'])
+    def login():
+        if request.method == 'POST':
+            username = request.form['username']
+            password = request.form['password']
+            if username == 'SHP' and password == 'SHP2024!!':  # Replace with your credentials
+                session['logged_in'] = True
+                return redirect(url_for('view'))
+            else:
+                return render_template('login.html', error='Invalid credentials')
+        return render_template('login.html')
+
+    @app.route('/logout')
+    def logout():
+        session.pop('logged_in', None)
+        return redirect(url_for('view'))
 
     @app.route('/search', methods=['GET', 'POST'])
-    @check_password
+    @login_required
     def index():
         if request.method == 'POST':
             author_name = request.form['author_name']
@@ -92,8 +124,63 @@ def register_routes(app):
             return rendered_html
         return render_template('index.html')
 
-    @app.route('/save', methods=['POST'])
+    @app.route('/get_article/<int:article_id>', methods=['GET'])
+    def get_article(article_id):
+        article = Article.query.get(article_id)
+        if article:
+            return jsonify({
+                'id': article.id,
+                'title': article.title,
+                'authors': article.authors,
+                'source': article.source,
+                'pub_date': article.pub_date,
+                'abstract': article.abstract,
+                'faculty_member': article.faculty_member
+            })
+        return jsonify(error="Article not found"), 404
+
+    @app.route('/edit_article', methods=['POST'])
+    def edit_article():
+        data = request.form
+        article_id = data.get('id')
+        article = Article.query.get(article_id)
+        if article:
+            article.title = data.get('title')
+            article.authors = data.get('authors')
+            article.source = data.get('source')
+            article.pub_date = data.get('pub_date')
+            article.abstract = data.get('abstract')
+            article.faculty_member = data.get('faculty_member')
+            db.session.commit()
+            return jsonify(success=True)
+        return jsonify(success=False, error="Article not found")
+
+
+    @app.route('/add_article', methods=['POST'])
     @check_password
+    def add_article():
+        data = request.form
+        try:
+            new_article = Article(
+                title=data['title'],
+                authors=data['authors'],
+                source=data['source'],
+                pub_date=data['pub_date'],
+                abstract=data['abstract'],
+                faculty_member=data['faculty_member'],
+                pmid=data['pmid'],
+                pubmed_link=data['pubmed_link']
+            )
+            db.session.add(new_article)
+            db.session.commit()
+            return jsonify(success=True)
+        except Exception as e:
+            print(f"Error adding article: {e}")
+            return jsonify(success=False, error=str(e))
+
+
+    @app.route('/save', methods=['POST'])
+    @login_required
     def save():
         print('Saving articles')  # Debug print
         data = request.get_json()
@@ -134,19 +221,19 @@ def register_routes(app):
         return jsonify(success=True)
 
     @app.route('/saved')
-    @check_password
+    @login_required
     def saved():
         articles = Article.query.all()
         return render_template('saved.html', articles=articles)
 
     @app.route('/manage')
-    @check_password
+    @login_required
     def manage():
         articles = Article.query.all()
         return render_template('manage.html', articles=articles)
 
     @app.route('/delete_multiple', methods=['POST'])
-    @check_password
+    @login_required
     def delete_multiple():
         try:
             data = request.get_json()

@@ -17,60 +17,77 @@
             --stony-brook-red: #cc0033;
             --stony-brook-gray: #4b4b4b;
         }
-
+    
         .stony-brook-bg {
             background-color: var(--stony-brook-red);
         }
-
+    
         .stony-brook-text {
             color: var(--stony-brook-red);
         }
-
+    
         .stony-brook-gray-text {
             color: var(--stony-brook-gray);
         }
-
+    
         .dataTables_wrapper .dataTables_filter {
             margin-bottom: 1rem; /* Add space below the search bar */
         }
-
+    
         .dataTables_wrapper .dataTables_filter input {
             border: 1px solid var(--stony-brook-gray);
             padding: 0.375rem;
             border-radius: 0.375rem;
         }
-
+    
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .dataTables_wrapper .dataTables_filter {
                 margin-bottom: 0.5rem;
             }
+    
             .dataTables_wrapper .dataTables_filter input {
                 padding: 0.25rem;
                 font-size: 0.875rem;
             }
+    
             #articlesTable th, #articlesTable td {
                 padding: 0.25rem; /* Reduced padding for mobile */
                 font-size: 0.75rem; /* Smaller font size for mobile */
             }
         }
-    </style>
+    
+        /* Increase the size of checkboxes */
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+    </style>    
 {% endblock %}
 
 {% block content %}
-    <div class="flex justify-between items-center mb-4">
+    <!-- <div class="flex justify-between items-center mb-4">
         <img src="{{ url_for('static', filename='sbu_seawulf.png') }}"
             alt="Stony Brook University"
             class="h-32">
         <h1 class="text-3xl font-bold stony-brook-text">PubMed Faculty Publications</h1>
-    </div>
+    </div> -->
     <div class="mb-4">
         <span id="articleCount" class="text-lg stony-brook-text"></span>
     </div>
     <div class="overflow-x-auto px-4">
+        {% if session['logged_in'] %}
+        <div class="justify-between mb-4">
+            <button id="addNewBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" onclick="openAddModal()">Add New</button>
+            <button id="deleteSelectedBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Delete Selected</button>
+        </div>
+        {% endif %}
         <table id="articlesTable" class="min-w-full bg-white">
             <thead>
                 <tr class="stony-brook-bg text-white">
+                    {% if session['logged_in'] %}
+                    <th class="py-2"><input type="checkbox" id="selectAll"></th>
+                    {% endif %}
                     <th class="py-2">Title</th>
                     <th class="py-2">Authors</th>
                     <th class="py-2">Source</th>
@@ -79,11 +96,17 @@
                     <th class="py-2">Faculty Member</th>
                     <th class="py-2">PMID</th>
                     <th class="py-2">Link</th>
+                    {% if session['logged_in'] %}
+                    <th class="py-2">Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for article in articles %}
                 <tr class="border-b">
+                    {% if session['logged_in'] %}
+                    <td class="py-2"><input type="checkbox" class="article-checkbox" value="{{ article.id }}"></td>
+                    {% endif %}
                     <td class="py-2">{{ article.title }}</td>
                     <td class="py-2">{{ article.authors[:100] }}</td>
                     <td class="py-2">{{ article.source[:100] }}</td>
@@ -92,10 +115,98 @@
                     <td class="py-2">{{ article.faculty_member }}</td>
                     <td class="py-2">{{ article.pmid }}</td>
                     <td class="py-2"><a href="{{ article.pubmed_link }}" target="_blank" class="text-blue-500">PubMed</a></td>
+                    {% if session['logged_in'] %}
+                    <td class="py-2">
+                        <button class="text-blue-500" onclick="openEditModal({{ article.id }})">Edit</button>
+                    </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+    </div>
+
+    <!-- Add Modal -->
+    <div id="addModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white p-6 rounded-lg">
+            <h2 class="text-xl font-bold mb-4">Add New Article</h2>
+            <form id="addForm">
+                <div class="mb-4">
+                    <label for="addTitle" class="block text-gray-700">Title</label>
+                    <input type="text" id="addTitle" name="title" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addAuthors" class="block text-gray-700">Authors</label>
+                    <input type="text" id="addAuthors" name="authors" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addSource" class="block text-gray-700">Source</label>
+                    <input type="text" id="addSource" name="source" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addPubDate" class="block text-gray-700">Publication Date</label>
+                    <input type="text" id="addPubDate" name="pub_date" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addAbstract" class="block text-gray-700">Abstract</label>
+                    <textarea id="addAbstract" name="abstract" class="w-full p-2 border border-gray-300 rounded mt-2" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="addFacultyMember" class="block text-gray-700">Faculty Member</label>
+                    <input type="text" id="addFacultyMember" name="faculty_member" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addPMID" class="block text-gray-700">PMID</label>
+                    <input type="text" id="addPMID" name="pmid" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="addPubMedLink" class="block text-gray-700">PubMed Link</label>
+                    <input type="text" id="addPubMedLink" name="pubmed_link" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" onclick="closeAddModal()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+        <div class="bg-white p-6 rounded-lg">
+            <h2 class="text-xl font-bold mb-4">Edit Article</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId" name="id">
+                <div class="mb-4">
+                    <label for="editTitle" class="block text-gray-700">Title</label>
+                    <input type="text" id="editTitle" name="title" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editAuthors" class="block text-gray-700">Authors</label>
+                    <input type="text" id="editAuthors" name="authors" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editSource" class="block text-gray-700">Source</label>
+                    <input type="text" id="editSource" name="source" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editPubDate" class="block text-gray-700">Publication Date</label>
+                    <input type="text" id="editPubDate" name="pub_date" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-4">
+                    <label for="editAbstract" class="block text-gray-700">Abstract</label>
+                    <textarea id="editAbstract" name="abstract" class="w-full p-2 border border-gray-300 rounded mt-2" required></textarea>
+                </div>
+                <div class="mb-4">
+                    <label for="editFacultyMember" class="block text-gray-700">Faculty Member</label>
+                    <input type="text" id="editFacultyMember" name="faculty_member" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="flex justify-end">
+                    <button type="button" onclick="closeEditModal()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded mr-2">Cancel</button>
+                    <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded">Save</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script>
@@ -104,8 +215,10 @@
                 "pageLength": 100
             });
 
-            // Update the article count
-            $('#articleCount').text(`${table.data().length} PubMed Articles Found`);
+            // Update the article count with Tailwind styling
+            $('#articleCount')
+                .text(`${table.data().length} PubMed Articles Found`)
+                .addClass('text-lg bg-red-100 font-bold stony-brook-text border border-stony-brook-red rounded-full px-4 py-2 inline-block');
 
             function adjustAbstracts() {
                 const windowWidth = $(window).width();
@@ -121,6 +234,107 @@
 
             adjustAbstracts();
             $(window).resize(adjustAbstracts);
+
+            // Handle the edit form submission
+            $('#editForm').submit(function(event) {
+                event.preventDefault();
+                const formData = $(this).serialize();
+                $.ajax({
+                    url: '/edit_article',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error updating article.');
+                        }
+                    }
+                });
+            });
+
+            // Handle the add form submission
+            $('#addForm').submit(function(event) {
+                event.preventDefault();
+                const formData = $(this).serialize();
+                $.ajax({
+                    url: '/add_article',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error adding article.');
+                        }
+                    }
+                });
+            });
+
+            // Select all checkboxes
+            $('#selectAll').on('click', function() {
+                $('.article-checkbox').prop('checked', this.checked);
+            });
+
+            // Handle the delete selected button click
+            $('#deleteSelectedBtn').click(function() {
+                var selectedIds = [];
+                $('.article-checkbox:checked').each(function() {
+                    selectedIds.push($(this).val());
+                });
+
+                if (selectedIds.length > 0) {
+                    if (confirm('Are you sure you want to delete the selected articles?')) {
+                        fetch('/delete_multiple', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ article_ids: selectedIds })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.reload();
+                            } else {
+                                alert('Error deleting articles.');
+                            }
+                        })
+                        .catch(error => console.error('Error:', error));
+                    }
+                } else {
+                    alert('Please select at least one article to delete.');
+                }
+            });
         });
+
+        // Open the add modal
+        function openAddModal() {
+            $('#addModal').removeClass('hidden');
+        }
+
+        // Close the add modal
+        function closeAddModal() {
+            $('#addModal').addClass('hidden');
+        }
+
+        // Open the edit modal and populate it with the article data
+        function openEditModal(articleId) {
+            $.get(`/get_article/${articleId}`, function(data) {
+                $('#editId').val(data.id);
+                $('#editTitle').val(data.title);
+                $('#editAuthors').val(data.authors);
+                $('#editSource').val(data.source);
+                $('#editPubDate').val(data.pub_date);
+                $('#editAbstract').val(data.abstract);
+                $('#editFacultyMember').val(data.faculty_member);
+                $('#editModal').removeClass('hidden');
+            });
+        }
+
+        // Close the edit modal
+        function closeEditModal() {
+            $('#editModal').addClass('hidden');
+        }
     </script>
 {% endblock %}

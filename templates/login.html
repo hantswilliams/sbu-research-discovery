@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block head %}
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .login-container {
+            /* background: linear-gradient(135deg, var(--stony-brook-red), var(--stony-brook-gray)); */
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .form-container {
+            max-width: 400px;
+            width: 100%;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            background-color: white;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            color: black;
+        }
+
+        .form-container h1 {
+            color: var(--stony-brook-red);
+        }
+
+        .form-container input:focus {
+            border-color: var(--stony-brook-red);
+            box-shadow: 0 0 0 3px rgba(204, 0, 51, 0.2);
+        }
+
+        :root {
+            --stony-brook-red: #cc0033;
+            --stony-brook-gray: #4b4b4b;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="login-container">
+        <div class="form-container bg-white p-8 shadow-lg rounded-lg">
+            <!-- <h1 class="text-2xl font-bold mb-6 text-center">Researcher SBU-SHP Login</h1> -->
+            {% if error %}
+            <div class="mb-4 text-red-600">
+                {{ error }}
+            </div>
+            {% endif %}
+            <form method="post" action="{{ url_for('login') }}">
+                <div class="mb-4">
+                    <label for="username" class="block text-gray-700">Username</label>
+                    <input type="text" id="username" name="username" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="mb-6">
+                    <label for="password" class="block text-gray-700">Password</label>
+                    <input type="password" id="password" name="password" class="w-full p-2 border border-gray-300 rounded mt-2" required>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-red-600">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
