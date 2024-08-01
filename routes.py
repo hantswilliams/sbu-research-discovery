@@ -1,7 +1,9 @@
 from flask import render_template, request, jsonify, Response, redirect, url_for, session
 from functools import wraps
 from Bio import Entrez
-from database import db, Article, FacultyMember, DeletedArticle  # Importing the database and models
+from database import db, Article, FacultyMember, DeletedArticle, ArticleKeyword
+from sqlalchemy.orm import joinedload
+from sqlalchemy import distinct
 
 Entrez.email = "your.email@example.com"  # Replace with your email
 
@@ -44,8 +46,8 @@ def register_routes(app):
             for record in records['PubmedArticle']:
                 pub_date_dict = record['MedlineCitation']['Article']['Journal']['JournalIssue']['PubDate']
                 pub_date = f"{pub_date_dict.get('Year', '')} {pub_date_dict.get('Month', '')} {pub_date_dict.get('Day', '')}".strip()
-                
                 abstract = record['MedlineCitation']['Article'].get('Abstract', {}).get('AbstractText', [""])[0]
+                
                 if isinstance(abstract, list):
                     abstract = " ".join(abstract)
                 elif isinstance(abstract, dict):
@@ -80,12 +82,26 @@ def register_routes(app):
 
     @app.route('/')
     def view():
-        articles = Article.query.all()
-        ## check if user is logged in
-        if 'logged_in' in session:
-            return render_template('view.html', articles=articles, logged_in=True)
-        else:
-            return render_template('view.html', articles=articles, logged_in=False)
+        articles = Article.query.options(joinedload(Article.keywords)).all()
+        distinct_faculty = db.session.query(distinct(Article.faculty_member)).all()
+        distinct_keywords = db.session.query(distinct(ArticleKeyword.keyword)).all()
+
+        # Extract just the values from the distinct query results
+        distinct_faculty = [faculty[0] for faculty in distinct_faculty]
+        distinct_keywords = [keyword[0] for keyword in distinct_keywords]
+
+        # Sort keywords
+        distinct_keywords.sort()
+
+        logged_in = 'logged_in' in session
+
+        return render_template(
+            'view.html',
+            articles=articles,
+            distinct_faculty=distinct_faculty,
+            distinct_keywords=distinct_keywords,
+            logged_in=logged_in
+        )
         
     @app.route('/login', methods=['GET', 'POST'])
     def login():

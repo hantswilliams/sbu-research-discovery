@@ -3,7 +3,8 @@ import requests
 from dotenv import load_dotenv
 from Bio import Entrez
 from app import create_app
-from database import db, Article, FacultyMember, DeletedArticle
+from database import db, Article, FacultyMember, DeletedArticle, ArticleKeyword
+import pandas as pd
 
 load_dotenv()
 
@@ -75,10 +76,50 @@ def fetch_article_details(pmids):
                 'PubMedLink': str(pubmed_link)
             }
             articles.append(article)
+
         return articles
+    
     except Exception as e:
         print(f"Error fetching article details: {e}")
         return []
+    
+def fetch_article_keywords(pmids):
+    if not pmids:
+        print("Received empty list of pmids")
+        ## return empty dataframe
+        return pd.DataFrame(columns=['pmid', 'keyword'])
+    
+    articles_keywords = {}
+
+    try:
+        handle = Entrez.efetch(db="pubmed", id=",".join(pmids), retmode="xml")
+        records = Entrez.read(handle)
+        handle.close()
+    except Exception as e:
+        print(f"Error fetching article keywords: {e}")
+        ## return empty dataframe
+        return pd.DataFrame(columns=['pmid', 'keyword'])
+    
+    for record in records['PubmedArticle']:
+        article = {}
+        article['pmid'] = record['MedlineCitation']['PMID']
+        article['data'] = record
+        articles_keywords[article['pmid']] = article
+
+    if not articles_keywords:
+        print("No articles found")
+        ## return empty dataframe
+        return pd.DataFrame(columns=['pmid', 'keyword'])
+    
+    article_keys_df = pd.DataFrame(columns=['pmid', 'keyword'])
+    for key in articles_keywords.keys():
+        keys = articles_keywords[key]['data']['MedlineCitation']['KeywordList']
+        for k in keys:
+            for i in k:
+                article_keys_df = article_keys_df._append({'pmid': key, 'keyword': i}, ignore_index=True)
+
+    return article_keys_df
+
 
 def send_email(new_articles, recipient_email):
     print("New articles found, sending email...")
@@ -120,6 +161,8 @@ def update_articles():
             pmids = search_pubmed(faculty.name, retmax=50)
             print(f"Found {len(pmids)} all time articles for {faculty.name}")
             articles = fetch_article_details(pmids)
+            article_keys_df = fetch_article_keywords(pmids)
+            
             for article_data in articles:
                 if not Article.query.filter_by(pmid=article_data['PMID']).first() and not DeletedArticle.query.filter_by(pmid=article_data['PMID']).first():
                     new_article = Article(
@@ -136,6 +179,25 @@ def update_articles():
                     article_data['FacultyMember'] = faculty.name  # Add faculty member name to article data
                     new_articles.append(article_data)
             db.session.commit()
+
+            ## loop through article_keys_df and see if pmid and keyword already exist in ArticleKeyword, if not add it
+            if article_keys_df.empty:
+                print(f"No keywords found for {faculty.name}")
+                continue
+
+            for index, row in article_keys_df.iterrows():
+                ## need to check if pmid and keyword already exist in ArticleKeyword, and if the pmid exists in Article
+                if not ArticleKeyword.query.filter_by(pmid=row['pmid'], keyword=row['keyword']).first() and Article.query.filter_by(pmid=row['pmid']).first():
+                    print(f"Adding new keyword for {row['pmid']}: {row['keyword']}")
+                    new_article_keyword = ArticleKeyword(
+                        pmid=row['pmid'],
+                        keyword=row['keyword']
+                    )
+                    db.session.add(new_article_keyword)
+                else:
+                    print(f"Keyword {row['keyword']} already exists for {row['pmid']} or {row['pmid']} does not exist in Article")
+            db.session.commit()
+
             print(f"New articles found for {faculty.name} to be added: {len(new_articles)}")
     
     if new_articles:

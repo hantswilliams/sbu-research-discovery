@@ -36,7 +36,7 @@ docker tag <image-name> <docker-hub-username>/<image-name>
 
 So it could be:
 ```bash
-docker tag shp-researcher hants/shp-researcher
+docker tag shp-researcher hants/shp-researcher:vCOOL
 ```
 
 ## Pushing Docker Image
