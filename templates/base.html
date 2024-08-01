@@ -5,6 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}PubMed Articles{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        // Include the browser detection and warning script here
+        function detectBrowser() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            if (userAgent.indexOf('chrome') > -1 && userAgent.indexOf('edge') === -1) {
+                return 'chrome';
+            } else if (userAgent.indexOf('safari') > -1) {
+                return 'safari';
+            } else if (userAgent.indexOf('firefox') > -1) {
+                return 'firefox';
+            } else if (userAgent.indexOf('edge') > -1 || userAgent.indexOf('edg') > -1) {
+                return 'edge';
+            } else {
+                return 'other';
+            }
+        }
+
+        function showWarning() {
+            const warningDiv = document.createElement('div');
+            warningDiv.style.position = 'fixed';
+            warningDiv.style.top = '50%';
+            warningDiv.style.left = '50%';
+            warningDiv.style.transform = 'translate(-50%, -50%)'; // Center the div
+            warningDiv.style.width = '80%'; // Adjust width as needed
+            warningDiv.style.maxWidth = '500px'; // Maximum width
+            warningDiv.style.backgroundColor = '#ffcc00';
+            warningDiv.style.color = '#000';
+            warningDiv.style.textAlign = 'center';
+            warningDiv.style.padding = '20px'; // Increased padding for visibility
+            warningDiv.style.zIndex = '10000';
+            warningDiv.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)'; // Add a shadow for emphasis
+            warningDiv.style.borderRadius = '10px'; // Rounded corners
+            warningDiv.innerHTML = `
+                <p style="font-size: 18px; margin: 0;">For the best experience, please use Google Chrome.</p>
+                <p style="font-size: 16px; margin: 0;">Some features may not work correctly in your current browser.</p>
+            `;
+            document.body.appendChild(warningDiv);
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const browser = detectBrowser();
+            if (browser !== 'chrome') {
+                showWarning();
+            }
+        });
+    </script>
+
     {% block head %}{% endblock %}
 </head>
 <body class="bg-gray-100 text-gray-800">
