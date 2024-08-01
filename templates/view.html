@@ -171,11 +171,8 @@
                     <td class="py-2">{{ article.source[:100] }}</td>
                     <td class="py-2">{{ article.pub_date }}</td>
                     <td class="py-2">{{ article.abstract[:200] }}</td>
-                    <td class="py-2">
-                        <a href="{{ url_for('faculty_articles', faculty_member=article.faculty_member | replace(' ', '-')) }}" class="text-blue-500">
-                            {{ article.faculty_member }}
-                        </a>
-                    </td>                    <td class="py-2">{{ article.pmid }}</td>
+                    <td class="py-2">{{ article.faculty_member }}</td>
+                    <td class="py-2">{{ article.pmid }}</td>
                     <td class="py-2"><a href="{{ article.pubmed_link }}" target="_blank" class="text-blue-500">PubMed</a></td>
                     <td class="py-2">
                         {% for keyword in article.keywords %}

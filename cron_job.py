@@ -156,6 +156,7 @@ def update_articles():
     app = create_app()
     with app.app_context():
         faculty_members = FacultyMember.query.all()
+        print(f"Found {len(faculty_members)} faculty members")
         for faculty in faculty_members:
             print(f"Updating articles for {faculty.name}")
             pmids = search_pubmed(faculty.name, retmax=50)
