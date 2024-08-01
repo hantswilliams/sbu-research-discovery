@@ -266,3 +266,24 @@ def register_routes(app):
         except Exception as e:
             print(f"Error deleting articles: {e}")
             return jsonify(success=False, error=str(e))
+
+    @app.route('/faculty/<faculty_member>', methods=['GET'])
+    def faculty_articles(faculty_member):
+        # Replace hyphens with spaces to get the original name
+        faculty_member = faculty_member.replace('-', ' ')
+        
+        # Query the database for articles by this faculty member
+        articles = Article.query.filter_by(faculty_member=faculty_member).options(joinedload(Article.keywords)).all()
+        
+        # Extract distinct keywords and other data if needed
+        distinct_keywords = db.session.query(distinct(ArticleKeyword.keyword)).all()
+        distinct_keywords = [keyword[0] for keyword in distinct_keywords]
+        distinct_keywords.sort()
+        
+        # Render a template for displaying the articles
+        return render_template(
+            'faculty_articles.html',
+            articles=articles,
+            distinct_keywords=distinct_keywords,
+            faculty_member=faculty_member
+        )
