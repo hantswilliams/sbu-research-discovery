@@ -13,6 +13,10 @@ class Article(db.Model):
     pmid = db.Column(db.String(50), nullable=False, unique=True)  # Add unique constraint for PubMed ID
     pubmed_link = db.Column(db.String(500), nullable=False)
     keywords = db.relationship('ArticleKeyword', backref='article', cascade='all, delete-orphan', lazy=True)
+    
+    def get_year(self):
+        # Extract the first 4 digits, assuming they represent the year
+        return self.pub_date[:4]
 
 class FacultyMember(db.Model):
     id = db.Column(db.Integer, primary_key=True)

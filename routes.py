@@ -4,6 +4,7 @@ from Bio import Entrez
 from database import db, Article, FacultyMember, DeletedArticle, ArticleKeyword
 from sqlalchemy.orm import joinedload
 from sqlalchemy import distinct
+from collections import defaultdict
 
 Entrez.email = "your.email@example.com"  # Replace with your email
 
@@ -90,6 +91,9 @@ def register_routes(app):
         distinct_faculty = [faculty[0] for faculty in distinct_faculty]
         distinct_keywords = [keyword[0] for keyword in distinct_keywords]
 
+        # Get faculty members and their ids from the database
+        faculty_members = FacultyMember.query.all()
+
         # Sort keywords
         distinct_keywords.sort()
 
@@ -100,6 +104,7 @@ def register_routes(app):
             articles=articles,
             distinct_faculty=distinct_faculty,
             distinct_keywords=distinct_keywords,
+            faculty_members=faculty_members,
             logged_in=logged_in
         )
         
@@ -248,6 +253,25 @@ def register_routes(app):
         articles = Article.query.all()
         return render_template('manage.html', articles=articles)
 
+    # @app.route('/delete_multiple', methods=['POST'])
+    # @login_required
+    # def delete_multiple():
+    #     try:
+    #         data = request.get_json()
+    #         article_ids = data.get('article_ids', [])
+    #         for article_id in article_ids:
+    #             article = Article.query.get(article_id)
+    #             if article:
+    #                 # Add the PMIDs of deleted articles to the DeletedArticle table
+    #                 deleted_article = DeletedArticle(pmid=article.pmid)
+    #                 db.session.add(deleted_article)
+    #                 db.session.delete(article)
+    #         db.session.commit()
+    #         return jsonify(success=True)
+    #     except Exception as e:
+    #         print(f"Error deleting articles: {e}")
+    #         return jsonify(success=False, error=str(e))
+
     @app.route('/delete_multiple', methods=['POST'])
     @login_required
     def delete_multiple():
@@ -257,9 +281,19 @@ def register_routes(app):
             for article_id in article_ids:
                 article = Article.query.get(article_id)
                 if article:
+                    # Debug: Print the keywords associated with the article
+                    print(f"Deleting article with ID {article_id}, title: {article.title}")
+                    print(f"Associated keywords: {[k.keyword for k in article.keywords]}")
+                    
                     # Add the PMIDs of deleted articles to the DeletedArticle table
                     deleted_article = DeletedArticle(pmid=article.pmid)
                     db.session.add(deleted_article)
+                    
+                    # Explicitly delete associated keywords
+                    for keyword in article.keywords:
+                        db.session.delete(keyword)
+                    
+                    # Delete the article
                     db.session.delete(article)
             db.session.commit()
             return jsonify(success=True)
@@ -267,23 +301,84 @@ def register_routes(app):
             print(f"Error deleting articles: {e}")
             return jsonify(success=False, error=str(e))
 
+
+
+
+
+    @app.route('/dashboard')
+    def dashboard():
+        # Query to get all articles
+        articles = Article.query.all()
+
+        # Get faculty members and their ids from the database
+        faculty_members = FacultyMember.query.all()
+        
+        # Create a dictionary to map faculty names to their IDs
+        faculty_name_to_id = {faculty.name: faculty.id for faculty in faculty_members}
+        
+        # Dictionary to store year-wise article count
+        year_counts = defaultdict(int)
+        
+        # Dictionary to store article count per faculty member
+        faculty_counts = defaultdict(int)
+        
+        # Set to track faculty members who have published articles
+        faculty_with_articles = set()
+        
+        # Iterate through articles to populate the dictionaries
+        for article in articles:
+            year = article.get_year()
+            if year.isdigit():  # Ensure that year is valid
+                year_counts[year] += 1
+            faculty_counts[article.faculty_member] += 1
+            faculty_with_articles.add(article.faculty_member)
+        
+        # Determine faculty members with zero articles
+        faculty_with_no_articles = [
+            faculty for faculty in faculty_members
+            if faculty.name not in faculty_with_articles
+        ]
+
+        # Convert the dictionaries to lists of tuples and sort by year
+        year_counts = sorted(year_counts.items())
+        faculty_counts = sorted(faculty_counts.items(), key=lambda x: x[1], reverse=True)
+
+        return render_template(
+            'dashboard.html', 
+            year_counts=year_counts, 
+            faculty_counts=faculty_counts,
+            faculty_name_to_id=faculty_name_to_id,
+            faculty_members=faculty_members,
+            faculty_with_no_articles=faculty_with_no_articles  # Pass the list to the template
+        )
+
+
+
     @app.route('/faculty/<int:faculty_id>', methods=['GET'])
     def faculty_articles(faculty_id):
-        # Query the database for articles by this faculty member's ID
-        articles = Article.query.filter_by(faculty_id=faculty_id).options(joinedload(Article.keywords)).all()
-        
         # Fetch the faculty member's name
-        faculty_member = FacultyMember.query.get(faculty_id).name if FacultyMember.query.get(faculty_id) else "Unknown"
+        faculty_member = FacultyMember.query.get(faculty_id)
+        faculty_name = faculty_member.name if faculty_member else "Unknown"
+        
+        # Query the database for articles by this faculty member's name
+        articles = Article.query.filter_by(faculty_member=faculty_name).options(joinedload(Article.keywords)).all()
         
         # Extract distinct keywords
         distinct_keywords = db.session.query(distinct(ArticleKeyword.keyword)).all()
         distinct_keywords = [keyword[0] for keyword in distinct_keywords]
         distinct_keywords.sort()
         
-        # Render the template
+        # Determine if the user is logged in
+        logged_in = 'logged_in' in session
+
+        # Render the same template as the main view, passing the faculty_member for context
         return render_template(
-            'faculty_articles.html',
+            'view.html',  # Use the same template
             articles=articles,
             distinct_keywords=distinct_keywords,
-            faculty_member=faculty_member
+            faculty_member=faculty_name,  # Pass the faculty name for context
+            logged_in=logged_in
         )
+
+
+

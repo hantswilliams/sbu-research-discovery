@@ -40,6 +40,19 @@
             border-radius: 0.375rem;
         }
 
+        #loadingOverlay {
+            display: none; /* Ensure the overlay is hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            z-index: 9999; /* Ensure it is on top of other elements */
+            justify-content: center;
+            align-items: center;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .dataTables_wrapper .dataTables_filter {
@@ -118,28 +131,48 @@
 {% endblock %}
 
 {% block content %}
+
     <div class="mb-4">
-        <span id="articleCount" class="text-lg stony-brook-text"></span>
+        {% if faculty_member %}
+            <span id="articleCountFaculty" class="text-lg stony-brook-text"></span>
+        {% else %}
+            <span id="articleCount" class="text-lg stony-brook-text"></span>
+            <span class="text-lg bg-red-100 font-bold stony-brook-text border border-stony-brook-red rounded-full px-4 py-2 inline-block"> <a href="{{ url_for('dashboard') }}" class="text-red-700">Dashboard</a></span>
+        {% endif %}
     </div>
+
     <div class="overflow-x-auto px-4">
         {% if logged_in %}
-        <div class="flex justify-between mb-4">
-            <button id="addNewBtn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded" onclick="openAddModal()">Add New</button>
-            <button id="deleteSelectedBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded">Delete Selected</button>
+        <div class="flex mb-4">
+            {% if faculty_member %}
+                <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="window.location.href='/'">Back</button>
+            {% endif %}
+            <button id="addNewBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="openAddModal()">Add New</button>
+            <button id="deleteSelectedBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2">Delete Selected</button>
+            <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="window.location.href='/dashboard'">Dashboard</button>
+            <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="window.location.href='/logout'">Logout</button>
         </div>
         {% endif %}
-        <div class="flex space-x-4 mb-4">
-            <select id="facultyFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
-                <option value="">All Faculty Members</option>
-                {% for faculty in distinct_faculty %}
-                <option value="{{ faculty }}">{{ faculty }}</option>
-                {% endfor %}
-            </select>
-            <select id="keywordFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
-                <option value="">All PubMed Keywords</option>
-                <!-- The options will be populated via JavaScript -->
-            </select>
-        </div>              
+        
+        {% if faculty_member and not logged_in %}
+            <div>
+                <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2 mb-4" onclick="window.location.href='/'">Back</button>
+            </div>        
+        
+        {% else %}
+            <div class="flex space-x-4 mb-4">
+                <select id="facultyFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <option value="">All Faculty Members</option>
+                    {% for faculty in distinct_faculty %}
+                    <option value="{{ faculty }}">{{ faculty }}</option>
+                    {% endfor %}
+                </select>
+                <select id="keywordFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
+                    <option value="">All PubMed Keywords</option>
+                </select>
+            </div>   
+        {% endif %}
+
         <table id="articlesTable" class="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden shadow-lg">
             <thead>
                 <tr class="stony-brook-bg text-white">
@@ -149,7 +182,7 @@
                     <th class="py-2">Title</th>
                     <th class="py-2">Authors</th>
                     <th class="py-2">Source</th>
-                    <th class="py-2">Publication Date</th>
+                    <th class="py-2">Publication Year</th>
                     <th class="py-2">Abstract</th>
                     <th class="py-2">Faculty Member</th>
                     <th class="py-2">PMID</th>
@@ -169,9 +202,22 @@
                     <td class="py-2">{{ article.title }}</td>
                     <td class="py-2">{{ article.authors[:100] }}</td>
                     <td class="py-2">{{ article.source[:100] }}</td>
-                    <td class="py-2">{{ article.pub_date }}</td>
+                    <td class="py-2">{{ article.pub_date[:4] }}</td>
                     <td class="py-2">{{ article.abstract[:200] }}</td>
-                    <td class="py-2">{{ article.faculty_member }}</td>
+                    <td class="py-2">
+
+                        {% if faculty_member %}
+                            {{ faculty_member }}
+                        {% else %}
+
+                            {% for faculty in faculty_members %}
+                                {% if faculty.name == article.faculty_member %}
+                                <a href="{{ url_for('faculty_articles', faculty_id=faculty.id) }}" class="text-blue-500">{{ article.faculty_member }}</a>
+                                {% endif %}
+                            {% endfor %}
+
+                        {% endif %}
+                    </td>                    
                     <td class="py-2">{{ article.pmid }}</td>
                     <td class="py-2"><a href="{{ article.pubmed_link }}" target="_blank" class="text-blue-500">PubMed</a></td>
                     <td class="py-2">
@@ -273,21 +319,18 @@
         </div>
     </div>
 
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-red-800 bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="text-white text-xl">Processing, please wait...</div>
+    </div>
+
     <script>
         $(document).ready(function() {
-            const table = $('#articlesTable').DataTable({
-                "pageLength": 100
-            });
 
-            // // Populate the faculty filter dropdown, make sure to remove duplicates
-            // {% for faculty in distinct_faculty %}
-            // $('#facultyFilter').append(new Option("{{ faculty }}", "{{ faculty }}"));
-            // {% endfor %}
-            
-            // // Populate the keyword filter dropdown
-            // {% for keyword in distinct_keywords %}
-            // $('#keywordFilter').append(new Option("{{ keyword }}", "{{ keyword }}"));
-            // {% endfor %}
+            const table = $('#articlesTable').DataTable({
+                "pageLength": 50,
+                "order": [[4, 'desc']]  // Index 4 corresponds to the 5th column (Publication Date)
+            });
 
             // Populate the keyword filter dropdown
             let keywordOptions = [];
@@ -308,13 +351,17 @@
                 .text(`${table.data().length} PubMed Articles Found`)
                 .addClass('text-lg bg-red-100 font-bold stony-brook-text border border-stony-brook-red rounded-full px-4 py-2 inline-block');
 
+            $('#articleCountFaculty')
+            .text(`${table.data().length} PubMed Articles Found` + ' for ' + '{{ faculty_member }}')
+            .addClass('text-lg bg-red-100 font-bold stony-brook-text border border-stony-brook-red rounded-full px-4 py-2 inline-block');
+
             // Filter articles by faculty member
             $('#facultyFilter').on('change', function () {
                 const selectedFaculty = $(this).val();
                 if (selectedFaculty) {
-                    table.columns(5).search('^' + selectedFaculty + '$', true, false).draw();
+                    table.columns(6).search('^' + selectedFaculty + '$', true, false).draw();
                 } else {
-                    table.columns(5).search('').draw();
+                    table.columns(6).search('').draw();
                 }
             });
 
@@ -322,7 +369,7 @@
             $.fn.dataTable.ext.search.push(
                 function(settings, data, dataIndex) {
                     const selectedKeyword = $('#keywordFilter').val();
-                    const keywords = data[8]; // Keywords are in the 9th column (index 8)
+                    const keywords = data[9]; // Keywords are in the 9th column (index 8)
                     if (!selectedKeyword || keywords.includes(selectedKeyword)) {
                         return true;
                     }
@@ -392,6 +439,7 @@
             });
 
             // Handle the delete selected button click
+            // Handle the delete selected button click
             $('#deleteSelectedBtn').click(function() {
                 var selectedIds = [];
                 $('.article-checkbox:checked').each(function() {
@@ -400,6 +448,9 @@
 
                 if (selectedIds.length > 0) {
                     if (confirm('Are you sure you want to delete the selected articles?')) {
+                        // Show the loading overlay
+                        $('#loadingOverlay').css('display', 'flex');
+
                         fetch('/delete_multiple', {
                             method: 'POST',
                             headers: {
@@ -409,18 +460,29 @@
                         })
                         .then(response => response.json())
                         .then(data => {
+                            // Hide the loading overlay
+                            $('#loadingOverlay').css('display', 'none');
+
                             if (data.success) {
                                 window.location.reload();
                             } else {
                                 alert('Error deleting articles.');
                             }
                         })
-                        .catch(error => console.error('Error:', error));
+                        .catch(error => {
+                            // Hide the loading overlay
+                            $('#loadingOverlay').css('display', 'none');
+                            console.error('Error:', error);
+                            alert('An error occurred. Please try again later.');
+                        });
                     }
                 } else {
                     alert('Please select at least one article to delete.');
                 }
             });
+
+
+
         });
 
         // Open the add modal
