@@ -359,9 +359,9 @@
             $('#facultyFilter').on('change', function () {
                 const selectedFaculty = $(this).val();
                 if (selectedFaculty) {
-                    table.columns(6).search('^' + selectedFaculty + '$', true, false).draw();
+                    table.columns(5).search('^' + selectedFaculty + '$', true, false).draw();
                 } else {
-                    table.columns(6).search('').draw();
+                    table.columns(5).search('').draw();
                 }
             });
 
@@ -369,7 +369,7 @@
             $.fn.dataTable.ext.search.push(
                 function(settings, data, dataIndex) {
                     const selectedKeyword = $('#keywordFilter').val();
-                    const keywords = data[9]; // Keywords are in the 9th column (index 8)
+                    const keywords = data[8]; // Keywords are in the 9th column (index 8)
                     if (!selectedKeyword || keywords.includes(selectedKeyword)) {
                         return true;
                     }
