@@ -253,25 +253,6 @@ def register_routes(app):
         articles = Article.query.all()
         return render_template('manage.html', articles=articles)
 
-    # @app.route('/delete_multiple', methods=['POST'])
-    # @login_required
-    # def delete_multiple():
-    #     try:
-    #         data = request.get_json()
-    #         article_ids = data.get('article_ids', [])
-    #         for article_id in article_ids:
-    #             article = Article.query.get(article_id)
-    #             if article:
-    #                 # Add the PMIDs of deleted articles to the DeletedArticle table
-    #                 deleted_article = DeletedArticle(pmid=article.pmid)
-    #                 db.session.add(deleted_article)
-    #                 db.session.delete(article)
-    #         db.session.commit()
-    #         return jsonify(success=True)
-    #     except Exception as e:
-    #         print(f"Error deleting articles: {e}")
-    #         return jsonify(success=False, error=str(e))
-
     @app.route('/delete_multiple', methods=['POST'])
     @login_required
     def delete_multiple():
