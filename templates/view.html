@@ -137,7 +137,7 @@
             <span id="articleCountFaculty" class="text-lg stony-brook-text"></span>
         {% else %}
             <span id="articleCount" class="text-lg stony-brook-text"></span>
-            <span class="text-lg bg-red-100 font-bold stony-brook-text border border-stony-brook-red rounded-full px-4 py-2 inline-block"> <a href="{{ url_for('dashboard') }}" class="text-red-700">Dashboard</a></span>
+            <!-- <span class="text-lg bg-red-100 font-bold stony-brook-text border border-stony-brook-red rounded-full px-4 py-2 inline-block"> <a href="{{ url_for('dashboard') }}" class="text-red-700">Dashboard</a></span> -->
         {% endif %}
     </div>
 
@@ -149,7 +149,7 @@
             {% endif %}
             <button id="addNewBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="openAddModal()">Add New</button>
             <button id="deleteSelectedBtn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2">Delete Selected</button>
-            <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="window.location.href='/dashboard'">Dashboard</button>
+            <!-- <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="window.location.href='/dashboard'">Dashboard</button> -->
             <button class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mr-2" onclick="window.location.href='/logout'">Logout</button>
         </div>
         {% endif %}
@@ -161,16 +161,16 @@
         
         {% else %}
             <div class="flex space-x-4 mb-4">
-                <select id="facultyFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
+                <!-- <select id="facultyFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
                     <option value="">All Faculty Members</option>
                     {% for faculty in distinct_faculty %}
                     <option value="{{ faculty }}">{{ faculty }}</option>
                     {% endfor %}
-                </select>
+                </select> -->
                 <select id="keywordFilter" class="bg-white border border-gray-300 rounded-lg shadow-sm py-2 px-4 focus:outline-none focus:ring-2 focus:ring-red-500">
                     <option value="">All PubMed Keywords</option>
                 </select>
-            </div>   
+            </div>    
         {% endif %}
 
         <table id="articlesTable" class="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden shadow-lg">
@@ -327,6 +327,10 @@
     <script>
         $(document).ready(function() {
 
+            // Determine the column index based on the logged-in state
+            var keywordColumnIndex = {% if logged_in %} 9 {% else %} 8 {% endif %};
+
+
             const table = $('#articlesTable').DataTable({
                 "pageLength": 50,
                 "order": [[4, 'desc']]  // Index 4 corresponds to the 5th column (Publication Date)
@@ -365,11 +369,23 @@
                 }
             });
 
+            // // Custom filtering function for keywords
+            // $.fn.dataTable.ext.search.push(
+            //     function(settings, data, dataIndex) {
+            //         const selectedKeyword = $('#keywordFilter').val();
+            //         const keywords = data[9]; // Keywords are in the 9th column (index 8)
+            //         if (!selectedKeyword || keywords.includes(selectedKeyword)) {
+            //             return true;
+            //         }
+            //         return false;
+            //     }
+            // );
+
             // Custom filtering function for keywords
             $.fn.dataTable.ext.search.push(
                 function(settings, data, dataIndex) {
                     const selectedKeyword = $('#keywordFilter').val();
-                    const keywords = data[8]; // Keywords are in the 9th column (index 8)
+                    const keywords = data[keywordColumnIndex]; // Use the dynamically set column index
                     if (!selectedKeyword || keywords.includes(selectedKeyword)) {
                         return true;
                     }
