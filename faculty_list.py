@@ -36,5 +36,12 @@ for name in df['Name']:
 ## create another name_abbreviated column that only keeps what comes before the first comma
 df['Name_Abbreviated'] = df['Name'].str.split(',').str[0]
 
+## create another column just for the last name, and another for the first name based on the new Name_Abbreviated column where we take the first word as the first name and the last word as the last name
+df['Last_Name'] = df['Name_Abbreviated'].str.split().str[-1]
+df['First_Name'] = df['Name_Abbreviated'].str.split().str[0]
+
+## create another column called terminal degree, where if the name contains "PhD", "Ph.D", "PHD", "DPT", "MD", "DDS", "DVM", "DO", "EdD", "DrPH" we will put YES, otherwise NO
+df['Terminal_Degree'] = df['Name'].str.contains('PhD|Ph.D|PHD|DPT|MD|DDS|DVM|DO|EdD|DrPH', case=False, regex=True).map({True: 'YES', False: 'NO'})
+
 ## save the data to a CSV file
 df.to_csv('faculty_list.csv', index=False)
