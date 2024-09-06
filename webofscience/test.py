@@ -1,61 +1,43 @@
-import os 
-from dotenv import load_dotenv
-import requests
 import pandas as pd 
+from webofscience.request import websci_byAuthor
 
-"""
+faculty = pd.read_csv('merged_faculty_list.csv')
 
-API documentation: https://developer.clarivate.com/apis/wos-starter 
-API Swagger: https://api.clarivate.com/swagger-ui/?url=https%3A%2F%2Fdeveloper.clarivate.com%2Fapis%2Fwos-starter%2Fswagger%3FforUser%3D73e459203fc3375aff081423b2349d8fdd4aa43d
+articles_list = []
+notfound_list = []
 
-"""
+for index, row in faculty.iterrows():
+    if row['SHP_Website_Terminal_Degree'] == 'YES':
+        facultyName = row['Last_First']
+        last_name = row['Last_First'].split()[0]
+        last_name = last_name.replace(',', '')
+        first_name = row['Last_First'].split()[1]
+        print(f'working on {last_name}, {first_name} ...')
+        try:
+            articles = websci_byAuthor(last_name, first_name)
+            print(f'Found {len(articles)} articles for {first_name} {last_name}')
+            articles_list.append(articles)
+        except Exception as e:
+            print(f'Error or not articles for {first_name} {last_name}: {e}')
+            notfound_list.append(facultyName)
+            continue
+    else:
+        print(f'{row["Last_First"]} does not have a terminal degree')
 
-load_dotenv()
+len(articles_list)
 
-print(os.getenv('WEBSCIENCE_BASIC'))
+## loop through the articles_list and flatten it
+## then convert to a pandas dataframe
 
-endpoint = 'https://api.clarivate.com/apis/wos-starter/v1'
+df_list = []
 
-headers = {
-    'X-ApiKey': os.getenv('WEBSCIENCE_BASIC')
-}
+for articles in articles_list:
+    df = pd.json_normalize(articles)
+    df_list.append(df)
 
-def websci_byAuthor(author_lastname, author_firstname):
-    print(f'Getting articles for {author_firstname} {author_lastname}')
-    url = f'{endpoint}/documents?db=WOK&q=AU={author_lastname}, {author_firstname}&limit=50'
-    response = requests.get(url, headers=headers)
-    response_json = response.json()
-    articles = response_json['hits']
-    if len(articles) == 0:
-        return None
-    
-    ## assume 50 records per page (total)
-    totalPages = (response_json['metadata']['total'] // 50) + 1
-    print(f'Total pages: {totalPages}')
-
-    for page in range(2, totalPages+1):
-        print(f'Getting page {page}')
-        url = f'{endpoint}/documents?db=WOK&q=AU={author_lastname}, {author_firstname}&limit=50&page={page}'
-        response = requests.get(url, headers=headers)
-        response_json = response.json()
-        articles += response_json['hits']
-
-    return articles
-
-## test with Lisa Muratori
-articles = websci_byAuthor('Muratori', 'Lisa')
-len(articles)
-
-
-
-
-
-## for testing purposes, flatten and convert to pandas dataframe
-df = pd.json_normalize(articles)
-## add a column for author, make sure its the first column
-df['sbu_shp_employee'] = 'Lisa Muratori'
-cols = df.columns.tolist()
-cols = cols[-1:] + cols[:-1]
-df = df[cols]
-df.to_csv('./webofscience/test_articles.csv', index=False)
+## flatten the list of dataframes
+df = pd.concat(df_list, ignore_index=True)
+        
+## save the data to a CSV file
+df.to_csv('./webofscience/webofscience_articles_loop.csv', index=False)
 
